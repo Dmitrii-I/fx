@@ -21,4 +21,4 @@ num.outliers.removed <- total.raw.ticks - sum(sapply(ticks.clean, nrow))
 cat("Removed ", num.outliers.removed, " outliers.\n", sep="")
 
 # Combine and fill
-ticks.combined <- AlignAndFill(ticks)   
+ticks.combined <- AlignAndFill(ticks.clean)   
