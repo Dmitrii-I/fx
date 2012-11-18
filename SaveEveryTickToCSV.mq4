@@ -54,7 +54,7 @@ string TimeInMillisec() {
 
 string ReplaceSpaces(string terminalName) {
    while (StringFind(terminalName, " ", 0) != -1) {
-      Text = StringSetChar(terminalName, StringFind(terminalName, " ", 0), '-');
+      terminalName = StringSetChar(terminalName, StringFind(terminalName, " ", 0), '-');
    }
    return(terminalName); 
 }
