@@ -1,6 +1,6 @@
 has_header <- function(csv_file) 
 {
-    # Returns TRUE if at least one of the elements in first row is numeric.
+    # Returns TRUE only if all elements in first row is non-numeric.
 
     # Retrieve elements in first line
     elements <- read.csv(csv_file, header = FALSE, sep = ",", nrows = 1)
