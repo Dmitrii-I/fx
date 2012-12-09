@@ -1,3 +1,97 @@
+dir_apply <- function(dir, pattern, fun)
+{
+    # Apply function fun to all files in a directory
+    # that satisfy specified pattern and return the results of
+    # fun in a named list
+    files <- list.files(path = dir,  pattern = pattern, full.names = TRUE)
+    results <- list()
+    fun <- match.fun(fun)
+    # Apply function fun to each file
+    for (i in 1:length(files)) 
+    {
+        results[i] <- fun(files[i])
+        names(results)[i] <- rev(unlist(strsplit(files[i], "/")))[1]
+    }
+    return(results)
+}
+
+find_missing_ticks <- function(ticksList, verbose = FALSE) 
+{
+    # This function compares tick files (where each file contains ticks on
+    # same symbol) obtained by simulataneosly mining same data feed. The tick
+    # files may come from different servers, data mining programs, scripts, 
+    # etc. The aim is to compare data recording performance of these
+    # servers or programs.
+    #
+    # The function returns a data frame containing colums: timestamp1, 
+    # bid1, ask1, timestamp2, bid2, ask2, etc. If a tick file misses a tick, 
+    # NA is filled in. Missing ticks are found by comparing all tick files, 
+    # one tick at a time. The tick files do not have to start ticking at the 
+    # same time: unnecessary leading ticks are purged. Timestamps do not have
+    # to be in sync as it may be hard to synchronize clocks across servers.
+    
+    # First, purge unneccessary leading ticks
+    
+    startingTimestamps <- vector()
+    for (i in 1:length(ticksList)) 
+    {
+        initialTimestamps[i] <- ticksList[[i]][1,1]
+    }
+
+    commonStartingTimestamp <- max(startingTimestamps) - 10
+
+    # Remove unnecessary leading ticks
+    for (i in 1:length(ticksList))
+    {
+        ticksList[[i]] <- 
+            ticksList[[i]][ticksList[[i]][,1] > commonStartingTimestamp, ]
+    }
+   
+    browser()
+     
+    tickFilesInDataFrame <- data.frame()
+    
+    return(tickFilesInDataFrame)
+    
+  
+} 
+
+
+load_ticks_dir <- function(csvFileDir, verbose = FALSE, bHeader = TRUE) {
+    # Loads csv files into a list containing data frames of ticks. 
+    # Each csv file should be for one symbol only and will produce one 
+    # data frame. The first three columns of a row in csv file should be 
+    # timestamp, bid, and ask. E.g. 2012-12-31 15:04:06.543424 1.54542 1.54555
+
+    csvFiles <- list.files(path = csvFileDir,  pattern = "csv")
+    
+    if (verbose) cat("Found ", length(csvFiles), 
+                 " csv files in ", csvFileDir, ". \n", sep="")
+
+    ## Load csv files into list
+    ticks <- list()
+    startTime <- as.numeric(Sys.time()) # measure execution time of for loop
+
+    # Load each csv file into a data frame and put it into list
+    for (i in 1:length(csvFiles)) {
+        ticks[[i]] <- 
+            read.csv(paste(csvFileDir, csvFiles[i], sep=""), header=bHeader, sep=",")
+        ticks[[i]][,1] <- as.POSIXct(ticks[[i]][,1])
+        if (verbose) cat("Loaded ", csvFiles[i], "\n", sep = "")
+    }
+    endTime <- as.numeric(Sys.time())
+    totalTicksAllFiles <- sum(sapply(ticks, nrow))
+    
+    if (verbose) {
+        cat("Loaded ", length(csvFiles), " csv file(s) and ", 
+            totalTicksAllFiles, " ticks.\n", sep="")
+        cat("Loaded in ", endTime - startTime, " seconds.\n", sep="")
+    }
+    
+    return(ticks)
+}
+
+
 RunningLookBackMedians <- function (x, window) {
     # window should be odd (runmed() requires that), if not, make it odd
     if ((window %% 2) == 0) window <- window + 1
@@ -113,11 +207,13 @@ PrintInfoOutliers <- function(x) {
 
 }
 
-AlignAndFill <- function(ticks.list) {
-    # Combines a list of ticks of currencies one data frame with columns: 
-    # timestamp, bid, ask, bid, ask, bid, ask, etc.
-    # For currencies that have no ticks at certain timestamps, NA is filled in,
-    # which is subsequently substituted with NAs by last observation.
+ticksListToDataFrame <- function(ticks.list) {
+    # Returns a data frame containing ticks of several currencies.
+    # The columns are: timestamp, bid1, ask1, bid2, ask2, bid3, ask3, etc.
+    # For currencies that have no ticks at certain timestamps, last
+    # observation is carried forward. This is needed because not every
+    # currency has same number of ticks and because timestamps are not
+    # aligned (i.e. EURUSD may tick at 12:33:44.543 while EURCHF ticks later).  
 
     require(zoo, quietly = TRUE)
     
