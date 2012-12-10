@@ -1,3 +1,27 @@
+get_filenames <- function(file_or_dir, pattern = "csv")
+{
+    # If file_or_dir is a directory, returns a vector of the paths of files
+    # in that directory. Otherwise returns file_or_dir.
+
+    filenames <- vector() # will hold filenames including path
+    
+    if (!is.na(file.info(file_or_dir)$isdir)) # if file_or_dir is a file or dir
+    {
+        if(file.info(file_or_dir)$isdir) 
+        {
+            filenames <- list.files(path = file_or_dir,  
+                         pattern = pattern, full.names = TRUE)
+        }
+        else
+        {
+            filenames <- file_or_dir
+        }
+    } 
+    
+    return(filenames)
+} 
+    
+
 dir_apply <- function(dir, pattern, fun)
 {
     # Apply function fun to all files in a directory

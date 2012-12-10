@@ -9,30 +9,28 @@ has_header <- function(csv_file)
     else return(TRUE)
 }
 
-add_header <- function(csv_file) 
+add_header <- function(file, pattern = "csv") 
 {
-    # Add header to a csv file. Header name is based on the file name.
-    # Retruns TRUE is header was added.
-    if (!has_header(csv_file)) 
+    # Add header to a text/csv file. Header text is based on the filename.
+    # Returns TRUE indicating that a header was added, FALSE otherwise.
+
+    if (!has_header(file)) 
     {
         # Retrieve the filename without direcories and extension
         # E.g. myfile will be retrieved from ~/mydir/myfile.csv 
         common_part <- rev(unlist(strsplit(unlist(
-            strsplit(csv_file, "\\."))[1], "/")))[1]
+                            strsplit(file, "\\."))[1], "/")))[1]
 
         header <- paste(common_part, "_timestamp,", common_part, "_bid,",
-            common_part, "_ask", sep = "")
+        common_part, "_ask", sep = "")
 
-        ticks <- readLines(csv_file)
-        writeLines(c(header, ticks), csv_file, sep = "\n")
-        return(TRUE) 
-        }
-        
+        ticks <- readLines(file)
+        writeLines(c(header, ticks), file, sep = "\n")
+        return(TRUE)
+    }
     else
     {
         return(FALSE)
     }
 }
-
-
 
