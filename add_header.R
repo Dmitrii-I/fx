@@ -1,36 +1,46 @@
-has_header <- function(csv_file) 
+has_header <- function(files) 
 {
-    # Returns TRUE only if all elements in first row are non-numeric.
+    # Returns TRUE only if all elements in first row of a text/csv
+    # file are non-numeric.
 
     # Retrieve elements in first line
-    elements <- read.csv(csv_file, header = FALSE, sep = ",", nrows = 1)
+    results <- vector(length = length(files), mode = "logical")
+
+    for (i in 1:length(files)) 
+    {
+        elements <- read.csv(files[i], header = FALSE, sep = ",", nrows = 1)
     
-    if (sum(sapply(elements[1, ], is.numeric)) > 0) return(FALSE)
-    else return(TRUE)
+        if (sum(sapply(elements[1, ], is.numeric)) > 0) results[i] <- FALSE
+        else results[i] <- TRUE
+    }
+
+    return(results)
 }
 
-add_header <- function(file, pattern = "csv") 
+add_header <- function(files, pattern = "csv") 
 {
     # Add header to a text/csv file. Header text is based on the filename.
     # Returns TRUE indicating that a header was added, FALSE otherwise.
+    
+    results <- vector(length = length(files), mode = "logical")
 
-    if (!has_header(file)) 
+    for (i in 1:length(files)) 
     {
-        # Retrieve the filename without direcories and extension
-        # E.g. myfile will be retrieved from ~/mydir/myfile.csv 
-        common_part <- rev(unlist(strsplit(unlist(
-                            strsplit(file, "\\."))[1], "/")))[1]
+        if (!has_header(files[i]))
+        {
+            # Retrieve the filename without direcories and extension
+            # E.g. myfile will be retrieved from ~/mydir/myfile.csv 
+            common_part <- rev(unlist(strsplit(unlist(
+                               strsplit(files[i], "\\."))[1], "/")))[1]
+            header <- paste(common_part, "_timestamp,", common_part, "_bid,",
+                            common_part, "_ask", sep = "")
 
-        header <- paste(common_part, "_timestamp,", common_part, "_bid,",
-        common_part, "_ask", sep = "")
-
-        ticks <- readLines(file)
-        writeLines(c(header, ticks), file, sep = "\n")
-        return(TRUE)
+            ticks <- readLines(files[i])
+            writeLines(c(header, ticks), files[i], sep = "\n")
+            results[i] <- TRUE
+        }
+        else results[i] <- FALSE
     }
-    else
-    {
-        return(FALSE)
-    }
+    return(results)
 }
 
