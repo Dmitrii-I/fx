@@ -39,36 +39,29 @@ find_missing_ticks <- function(ticksList, verbose = FALSE)
   
 } 
 
+get_files <- function(dir)
+{
+    # A wrapper function for list.files
+    files <- list.files(path = dir, pattern = "csv", full.names = TRUE,
+                        recursive = TRUE)
+    return(files)
+}
 
-load_ticks_dir <- function(csvFileDir, verbose = FALSE, bHeader = TRUE) {
+
+load_ticks <- function(files, header = TRUE) 
+{
     # Loads csv files into a list containing data frames of ticks. 
     # Each csv file should be for one symbol only and will produce one 
     # data frame. The first three columns of a row in csv file should be 
     # timestamp, bid, and ask. E.g. 2012-12-31 15:04:06.543424 1.54542 1.54555
 
-    csvFiles <- list.files(path = csvFileDir,  pattern = "csv")
-    
-    if (verbose) cat("Found ", length(csvFiles), 
-                 " csv files in ", csvFileDir, ". \n", sep="")
-
-    ## Load csv files into list
     ticks <- list()
-    startTime <- as.numeric(Sys.time()) # measure execution time of for loop
-
-    # Load each csv file into a data frame and put it into list
-    for (i in 1:length(csvFiles)) {
-        ticks[[i]] <- 
-            read.csv(paste(csvFileDir, csvFiles[i], sep=""), header=bHeader, sep=",")
-        ticks[[i]][,1] <- as.POSIXct(ticks[[i]][,1])
-        if (verbose) cat("Loaded ", csvFiles[i], "\n", sep = "")
-    }
-    endTime <- as.numeric(Sys.time())
-    totalTicksAllFiles <- sum(sapply(ticks, nrow))
     
-    if (verbose) {
-        cat("Loaded ", length(csvFiles), " csv file(s) and ", 
-            totalTicksAllFiles, " ticks.\n", sep="")
-        cat("Loaded in ", endTime - startTime, " seconds.\n", sep="")
+    # Load each csv file into a data frame and put it into list
+    for (i in 1:length(files)) 
+    {
+        ticks[[i]] <- read.csv(files[i], header = header)
+        ticks[[i]][,1] <- as.POSIXct(ticks[[i]][,1])
     }
     
     return(ticks)
