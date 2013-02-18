@@ -1,1 +1,1 @@
-Scripts to collect and analyze FOREX tick data
+Functions to collect and analyze FOREX tick data
