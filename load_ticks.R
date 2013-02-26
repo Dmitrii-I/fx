@@ -1,6 +1,10 @@
 load_ticks <- function(files, header = TRUE) 
 {
-	# Loads csv files into a list containing data frames of ticks. 
+	# Returns a list of ticks files.
+	#
+	# Arguments:
+	# files: a vector of full paths. Each path is to a single csv file.
+	#  
 	# Each csv file, containing data for one instrument only, will
 	# produce one data frame. 
 	#
