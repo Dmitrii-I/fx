@@ -20,12 +20,12 @@ align_ticks <- function(ticks_list) {
         headers <- c(headers, names(ticks[,2:3]))
         timestamps <- append(timestamps, ticks[,1])
     } 
-	# some timestamps will have duplicates as several instruments may have
+	# Some timestamps will have duplicates as several instruments may have
 	# ticked at the same time. Remove these duplicates.
     timestamps <- unique(timestamps)
     
-	ticks.combined <- data.frame(timestamps)
-    NAs <- data.frame(timestamps, NA, NA)
+	ticks_combined <- data.frame(timestamps)
+    NAs <- data.frame(timestamps, NA, NA) # the skeleton of combined data frame
 
     for (ticks in ticks_list) {
         names(NAs) <- names(ticks) # so that we can use rbind()
@@ -38,15 +38,15 @@ align_ticks <- function(ticks_list) {
 
         # Substitute all NAs except leading ones (na.rm = TRUE does not remove entire row, like we need)
         ticks[, 2:3] <- na.locf(ticks[, 2:3], na.rm = FALSE)  
-        ticks.combined <- merge(ticks.combined, ticks, by = 1)
+        ticks_combined <- merge(ticks_combined, ticks, by = 1)
     }
     
-    names(ticks.combined) <- headers # set the headers
+    names(ticks_combined) <- headers # set the headers
     
 	# Remove rows that have at least one NA. Some NAs are still here because
 	# there was no last observation that na.locf could use to substitute them.
-    while (sum(is.na(ticks.combined[1,])) > 0) 
-		ticks.combined <- ticks.combined[-1,] 
+    while (sum(is.na(ticks_combined[1,])) > 0) 
+		ticks_combined <- ticks_combined[-1,] 
 
-    return(ticks.combined)
+    return(ticks_combined)
 }
