@@ -1,37 +1,71 @@
+RollingMedians <- function (x, window, ind) {
+# Returns a vector of rolling medians for specified elements of x. 
+# Variable window specifies over how many elements the median is computed.
+# Negative window looks back; positive window looks forward.
+  
+	roll.med <- rep(0, length(ind)) # pre-allocate for faster computation
+	n <- length(x)
+	win.abs <- abs(window)
+	x.expanded <- c(x[2:win.abs], x, x[(n - win.abs + 1):(n-1)])
 
+	for (i in 1:length(ind)) {
+		roll.med[i] <- median(x.expanded[((ind[i] + win.abs - 1) + min(0, window + 1)):
+			                            ((ind[i] + win.abs - 1) + max(0, window - 1))])
+	}	
+  
+  return(roll.med)
+}
+	
 
-info.outliers <- function(x) {
-    # Takes in a data frame of quotes (3 columns: timestamp, bid, ask), 
-	# indexes of outliers, and prints info for each outlier
-    x.indexes.outliers <- unique(c(ind.outliers(x[,2]), ind.outliers(x[,3])))
-    if (length(x.indexes.outliers) < 1) return(cat("No outliers detected.\n")) 
-    
-    cat("Found ", length(x.indexes.outliers), " outliers.\n", sep="")
+GetIndexesOfOutliers <- function (prices) {
+	n <- length(prices[,1]) # number of observations
+	window.size <- 20 # size (in input) of window used to compute lookahead and lookback median
+	
+	diffs <- c(0, abs(diff(prices[,2])))
+	# Outliers will be checked only beyond cutoff set to 99th percentile (saves computation time)
+	cutoff <- quantile(diffs, 0.999, names=FALSE)
 
-    x.abs.diffs <-  cbind(c(0, abs(diff(x[,2]))), c(0, abs(diff(x[,3])))) 
-    diff.lb.med.bid <- run.lb.meds(x[, 2], 11)
-    diff.lb.med.ask <- run.lb.meds(x[, 3], 11)
-    diff.la.med.bid <- run.la.meds(x[, 2], 11)
-    diff.la.med.ask <- run.la.meds(x[, 3], 11)
-    # Loop through outliers and print info for each
-    for (i in 1:length(x.indexes.outliers)) {
-        cat("Outlier # ", i, ":\n", sep="")
-        start <- x.indexes.outliers[i] - 1
-        end <- x.indexes.outliers[i] + 1
-        data <- cbind(
-            x[start:end, ], 
-            x.abs.diffs[start:end, ],
-            abs(x[start:end, 2] - diff.lb.med.bid[start:end]), 
-            abs(x[start:end, 2] - diff.lb.med.ask[start:end]), 
-            abs(x[start:end, 3] - diff.la.med.bid[start:end]), 
-            abs(x[start:end, 3] - diff.la.med.ask[start:end])
-        )
-        names(data) <- c("timestamp", "bid", "ask", "bid.diff", "ask.diff", 
-                         "diff.lb.med.bid", "diff.la.med.bid", "diff.lb.med.ask",
-                         "diff.la.med.ask")
-        print(data)
-        cat("--------------------------------------------------\n")
-    }
+	suspect.indexes <- which(diffs > cutoff)
 
+	# compute lookback medians
+	lookback.medians <- RollingMedians(prices, -1 * window.size, suspect.indexes)
+
+	# compute lookahead medians
+	lookahead.medians <- RollingMedians(prices, window.size, suspect.indexes) 
+	
+	diff.lookback.median <- abs(prices[suspect.indexes,2] - lookback.medians) 
+	diff.lookahead.median <- abs(prices[suspect.indexes,2] - lookahead.medians) 
+
+	# compute max price change beyond which prices are market as outliers
+	max.diff <-  mean(bid.diff) * 30
+	print("max diff in pips:")
+	print(max.diff*10000)
+	# take 40 bid.diffs, drop 10 highest and calc sd of 30 
+	
+	indexes.outliers <- which((diff.lookback.median > max.diff) & (diff.lookahead.median > max.diff))
+	indexes.to.delete <- suspect.indexes[indexes.outliers]
+	diff.lookback.median <- diff.lookback.median[indexes.outliers] # store only medians of ticks to be deleted
+	diff.lookahead.median <- diff.lookahead.median[indexes.outliers] # store only medians of ticks to be deleted
+	cat("Going to delete ", length(indexes.to.delete), " ticks.\n", sep="")
+	cat("The following ticks will be deleted (indexes): \n")
+	print(indexes.to.delete)
+	for (i in 1:length(indexes.to.delete)) {
+		cat("Outlier # ", i, ":\n", sep="")
+		temp <- cbind(
+			input[(indexes.to.delete[i] - 1):(indexes.to.delete[i] + 1),], 
+			bid.diff[(indexes.to.delete[i] - 1):(indexes.to.delete[i] + 1)],
+			diff.lookback.median[i], # medians of ticks not be deleted were dropped earlier
+			diff.lookahead.median[i]
+		)
+		names(temp) <- c("timestamp", "bid", "ask", "bid.diff", "diff.lb.med", "diff.la.med")
+		print(temp)
+		cat("--------------------------------------------------\n")
+	}
+
+	if (length(indexes.to.delete) > 0) {
+		return(input[-indexes.to.delete,])
+	} else {
+		return(input)
+	}
 }
 

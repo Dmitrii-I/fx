@@ -1,38 +1,28 @@
-outliers <- function (x) {
-    # Returns indexes of outliers
-	# 
-	# Arguments:
-	# x: a numeric vector
-	#
-    # The algorithm to detect outliers is backward and forward looking.
-	# It employs medians to come up with a range of non-outlier values.
+# Read in ticks, and convert times to POSIXct for easer datetime manupulation
+path.to.files <- "~/data/oanda/1/test/";
+csv.files <- list.files(path=path.to.files, pattern="csv");
 
-    n <- length(x) 
-    
-    # Should be odd. Set as low as possible, while still making it 
-	# impossible for the median to be an outlier itself.
-    window <- 11 
-    
-    # compute lookback and lookahead medians
-    lookback_medians <- lookback_medians(x, window)
-    lookahead_medians <- lookahead_medians(x, window) 
-   
-    # Compute the difference of suspected x and the medians 
-    diffs_lookback_medians <- abs(x - lookback_medians) 
-    diffs_lookahead_medians <- abs(x - lookahead_medians) 
+cat("Found ", length(csv.files), " csv files in ", path.to.files, ". \n", sep="");
 
-    # Max difference between beyond which an element of x 
-    # is marked as outlier
-    max_diff <-  0.0040 # Equal to 40 pips. For JPY currencies, adjust appropriately
-
-    if (x[1] > 10) max_diff <- 0.4 # if x is quoted in JPY, adjust max.diff
-    # Better way to compute max_diff: take 40 previous bid differences, 
-	#drop 10 highest and
-    # get the sd of 30 elements. Use this to compute max.diff.
-   
-    # Identify outliers and store their indexes 
-    outliers <- which((diffs_lookback_medians > max_diff) & 
-					  (diffs_lookahead_medians > max_diff))
-
-    return(outliers)
+if (exists("ticks") == FALSE) { # only load csv file into ticks object if it does not exist yet
+	ticks <- list();
+	start.time <- as.numeric(Sys.time()); # used to measure execution time of hthe for loop
+	total.ticks <- 0;
+	for (i in 1:length(csv.files)) {
+		ticks[[i]] <- read.csv(paste(path.to.files, csv.files[i], sep=""), header=TRUE, sep=",");
+		ticks[[i]][,1] <- as.POSIXct(ticks[[i]][,1]);
+		total.ticks <- total.ticks + length(ticks[[i]][,1]);
+	}
+	end.time <- as.numeric(Sys.time());
+	cat("Loaded ", length(csv.files), " csv files and ", total.ticks, " ticks in ", end.time - start.time, " seconds.\n", sep="");
+} else { 
+	cat("Object with name ticks exists. Will skip loading it. Make sure it contains the data you want to edit. \n");
 }
+
+for (i in 1:length(ticks)) {
+	num.ticks.with.outliers <- length(ticks[[i]][,1]);
+	ticks[[i]] <- DeleteOutliers(ticks[[i]]); # remove the outliers
+	num.outliers <- num.ticks.with.outliers - length(ticks[[i]][,1]);
+	cat("Removed ", num.outliers, " outliers from ", names(ticks[[i]])[2], "\n", sep="");
+}
+	
